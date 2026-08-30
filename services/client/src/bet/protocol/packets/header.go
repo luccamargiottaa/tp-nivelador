@@ -2,10 +2,14 @@ package packets
 
 import "errors"
 
-const CodeSize = 1
-const BetAmountSize = 1
-const AgencyIdSize = 1
-const HeaderSize = CodeSize + BetAmountSize + AgencyIdSize
+const codeSize = 1
+const betAmountSize = 1
+const agencyIdSize = 1
+const HeaderSize = codeSize + betAmountSize + agencyIdSize
+
+const codeIndex = 0
+const betAmountIndex = 1
+const agencyIdIndex = 2
 
 const AckCode = 0
 const BetCode = 1
@@ -38,18 +42,18 @@ func NewEndHeader(agencyId uint8) Header {
 }
 
 func (header *Header) WriteToBytes(dest []byte) {
-	dest[0] = header.Code
-	dest[1] = header.BetAmount
-	dest[2] = header.AgencyId
+	dest[codeIndex] = header.Code
+	dest[betAmountIndex] = header.BetAmount
+	dest[agencyIdIndex] = header.AgencyId
 }
 
 func HeaderFromBytes(header []byte) (*Header, error) {
 	if len(header) != 3 {
 		return nil, errors.New("invalid header length")
 	}
-	code := header[0]
-	betAmount := header[1]
-	agencyId := header[2]
+	code := header[codeIndex]
+	betAmount := header[betAmountIndex]
+	agencyId := header[agencyIdIndex]
 
 	if code != BetCode && betAmount != 0 {
 		return nil, errors.New("invalid header code")

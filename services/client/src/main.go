@@ -3,10 +3,14 @@ package main
 import (
 	"errors"
 	"os"
+	"strconv"
 
 	"github.com/7574-sistemas-distribuidos/tp-nivelador/src/client"
 	"github.com/7574-sistemas-distribuidos/tp-nivelador/src/logger"
 )
+
+const agencyIdBase = 10
+const agencyIdSize = 8
 
 func loadConfig() (client.Config, error) {
 	agencyId := os.Getenv("AGENCY_ID")
@@ -14,6 +18,13 @@ func loadConfig() (client.Config, error) {
 	if agencyId == "" {
 		return client.Config{}, errors.New("AGENCY_ID environment variable is required")
 	}
+	agencyIdNum64, err := strconv.ParseUint(agencyId, agencyIdBase, agencyIdSize)
+
+	if err != nil {
+		return client.Config{}, errors.New("AGENCY_ID environment variable should be a number")
+	}
+	agencyIdNum8 := uint8(agencyIdNum64)
+
 	serverHost := os.Getenv("SERVER_HOST")
 
 	if serverHost == "" {
@@ -37,7 +48,7 @@ func loadConfig() (client.Config, error) {
 	return client.Config{
 		ServerHost: serverHost,
 		ServerPort: serverPort,
-		AgencyId:   agencyId,
+		AgencyId:   agencyIdNum8,
 		InputFile:  inputFile,
 		OutputFile: outputFile,
 	}, nil

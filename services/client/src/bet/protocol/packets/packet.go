@@ -10,9 +10,15 @@ import (
 
 const MaxNameLength = 50
 const DocumentSize = 8
-const DateSize = 10
-const NumberSize = 4
-const BetSize = MaxNameLength*2 + DocumentSize + DateSize + NumberSize
+const BirthdateSize = 10
+const numberSize = 4
+const BetSize = MaxNameLength*2 + DocumentSize + BirthdateSize + numberSize
+
+const firstNameIndex = 0
+const lastNameIndex = MaxNameLength
+const documentIndex = MaxNameLength * 2
+const birthdateIndex = MaxNameLength*2 + DocumentSize
+const numberIndex = MaxNameLength*2 + DocumentSize + BirthdateSize
 
 const MaxBets = math.MaxUint8
 
@@ -54,12 +60,18 @@ func (packet *Packet) writeBetToBytes(bet bet.Bet, dest []byte) error {
 	if len(bet.LastName) > MaxNameLength {
 		return errors.New("last name is too long")
 	}
-	copy(dest, bet.FirstName)
-	copy(dest[MaxNameLength:], bet.LastName)
-	copy(dest[MaxNameLength*2:], bet.Document)
-	copy(dest[MaxNameLength*2+DocumentSize:], bet.BirthDate)
+	if len(bet.Document) != DocumentSize {
+		return errors.New("incorrect document size")
+	}
+	if len(bet.BirthDate) != BirthdateSize {
+		return errors.New("incorrect birthdate size")
+	}
+	copy(dest[firstNameIndex:], bet.FirstName)
+	copy(dest[lastNameIndex:], bet.LastName)
+	copy(dest[documentIndex:], bet.Document)
+	copy(dest[birthdateIndex:], bet.BirthDate)
 
-	binary.BigEndian.PutUint32(dest[MaxNameLength*2+DocumentSize+DateSize:], bet.Number)
+	binary.BigEndian.PutUint32(dest[numberIndex:], bet.Number)
 
 	return nil
 }
@@ -83,12 +95,12 @@ func BetFromBytes(bytes []byte) (*bet.Bet, error) {
 	if len(bytes) != BetSize {
 		return nil, errors.New("invalid bet size")
 	}
-	firstName := string(bytes[:MaxNameLength])
-	lastName := string(bytes[MaxNameLength : MaxNameLength*2])
-	document := string(bytes[MaxNameLength*2 : MaxNameLength*2+DocumentSize])
-	birthDate := string(bytes[MaxNameLength*2+DocumentSize : MaxNameLength*2+DocumentSize+DateSize])
+	firstName := string(bytes[firstNameIndex : firstNameIndex+MaxNameLength])
+	lastName := string(bytes[lastNameIndex : lastNameIndex+MaxNameLength])
+	document := string(bytes[documentIndex : documentIndex+DocumentSize])
+	birthDate := string(bytes[birthdateIndex : birthdateIndex+BirthdateSize])
 
-	number := binary.BigEndian.Uint32(bytes[MaxNameLength*2+DocumentSize+DateSize:])
+	number := binary.BigEndian.Uint32(bytes[numberIndex : numberIndex+numberSize])
 
 	return &bet.Bet{FirstName: firstName, LastName: lastName, Document: document, BirthDate: birthDate, Number: number}, nil
 }
