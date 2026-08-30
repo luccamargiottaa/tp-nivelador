@@ -4,8 +4,8 @@ import (
 	"errors"
 	"math"
 
-	"github.com/7574-sistemas-distribuidos/tp-nivelador/src/bet"
-	"github.com/7574-sistemas-distribuidos/tp-nivelador/src/bet/protocol/packets/bet_packet"
+	"github.com/7574-sistemas-distribuidos/tp-nivelador/src/lottery"
+	"github.com/7574-sistemas-distribuidos/tp-nivelador/src/lottery/protocol/packets/bet_packet"
 )
 
 const MaxBets = math.MaxUint8
@@ -25,7 +25,7 @@ func NewAckPacket(agencyId uint8) *Packet {
 	return newHeaderPacket(NewAckHeader(agencyId))
 }
 
-func NewBetPacket(agencyId uint8, bets []bet.Bet) (*Packet, error) {
+func NewBetPacket(agencyId uint8, bets []lottery.Bet) (*Packet, error) {
 	betAmount := uint8(len(bets))
 
 	if betAmount == 0 {
@@ -38,8 +38,8 @@ func NewBetPacket(agencyId uint8, bets []bet.Bet) (*Packet, error) {
 
 	var betSize uint16 = 0
 
-	for i, b := range bets {
-		betPacket, err := bet_packet.NewBetPacket(b)
+	for i, bet := range bets {
+		betPacket, err := bet_packet.NewBetPacket(bet)
 
 		if err != nil {
 			return nil, err
@@ -62,14 +62,14 @@ func (packet *Packet) ToBytes() ([]byte, error) {
 
 	var i uint16 = HeaderSize
 
-	for _, b := range packet.bets {
-		b.WriteToBytes(bytes[i:])
-		i += b.Size()
+	for _, bet := range packet.bets {
+		bet.WriteToBytes(bytes[i:])
+		i += bet.Size()
 	}
 	return bytes, nil
 }
 
-func AddBetsFromBytes(header *Header, bytes []byte, bets []bet.Bet) error {
+func AddBetsFromBytes(header *Header, bytes []byte, bets []lottery.Bet) error {
 	var i uint16
 
 	for i < uint16(header.BetAmount) {

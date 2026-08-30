@@ -5,7 +5,7 @@ import (
 	"errors"
 	"strconv"
 
-	"github.com/7574-sistemas-distribuidos/tp-nivelador/src/bet"
+	"github.com/7574-sistemas-distribuidos/tp-nivelador/src/lottery"
 )
 
 const documentBase = 10
@@ -30,7 +30,7 @@ type BetPacket struct {
 	number    uint32
 }
 
-func NewBetPacket(bet bet.Bet) (*BetPacket, error) {
+func NewBetPacket(bet lottery.Bet) (*BetPacket, error) {
 	header, err := NewBetPacketHeader(bet)
 
 	if err != nil {
@@ -81,8 +81,8 @@ func (packet *BetPacket) Size() uint16 {
 	return uint16(BetPacketHeaderSize + betBaseSize + packet.header.FirstNameLength + packet.header.LastNameLength)
 }
 
-func (packet *BetPacket) ToBet() bet.Bet {
+func (packet *BetPacket) ToBet() lottery.Bet {
 	document := strconv.FormatUint(uint64(packet.document), documentBase)
 
-	return bet.Bet{FirstName: packet.firstName, LastName: packet.lastName, Document: document, BirthDate: packet.birthdate, Number: packet.number}
+	return lottery.Bet{FirstName: packet.firstName, LastName: packet.lastName, Document: document, BirthDate: packet.birthdate, Number: packet.number}
 }

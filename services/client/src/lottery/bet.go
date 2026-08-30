@@ -1,4 +1,4 @@
-package bet
+package lottery
 
 type Bet struct {
 	FirstName string

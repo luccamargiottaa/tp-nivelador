@@ -5,9 +5,9 @@ import (
 	"net"
 	"time"
 
-	"github.com/7574-sistemas-distribuidos/tp-nivelador/src/bet/protocol"
-	"github.com/7574-sistemas-distribuidos/tp-nivelador/src/bet/storage"
 	"github.com/7574-sistemas-distribuidos/tp-nivelador/src/logger"
+	"github.com/7574-sistemas-distribuidos/tp-nivelador/src/lottery/protocol"
+	"github.com/7574-sistemas-distribuidos/tp-nivelador/src/lottery/storage"
 )
 
 const connectionAttemptsMax = 3

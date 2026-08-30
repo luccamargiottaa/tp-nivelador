@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/7574-sistemas-distribuidos/tp-nivelador/src/bet"
+	"github.com/7574-sistemas-distribuidos/tp-nivelador/src/lottery"
 )
 
 const appendMode = os.O_WRONLY | os.O_CREATE | os.O_APPEND
@@ -48,28 +48,28 @@ func NewStorage(inputPath string, outputPath string) (*Storage, error) {
 	return storage, nil
 }
 
-func (storage *Storage) ReadBets(amount int) ([]bet.Bet, error) {
+func (storage *Storage) ReadBets(amount int) ([]lottery.Bet, error) {
 	scanner := bufio.NewScanner(storage.inputFile)
-	bets := make([]bet.Bet, amount)
+	bets := make([]lottery.Bet, amount)
 
 	for read := 0; read < amount && scanner.Scan(); read++ {
 		line := scanner.Text()
-		b, err := betFromLine(line)
+		bet, err := betFromLine(line)
 
 		if err != nil {
 			return nil, err
 		}
-		bets[read] = *b
+		bets[read] = *bet
 	}
 	return bets, scanner.Err()
 }
 
-func (storage *Storage) WriteBets(bets []bet.Bet) (err *error) {
+func (storage *Storage) WriteBets(bets []lottery.Bet) (err *error) {
 	writer := bufio.NewWriter(storage.outputFile)
 	defer flushWriter(writer, err)
 
-	for _, b := range bets {
-		line := betToLine(&b)
+	for _, bet := range bets {
+		line := betToLine(&bet)
 
 		if _, writeErr := writer.WriteString(line); writeErr != nil {
 			err = &writeErr
@@ -86,18 +86,18 @@ func (storage *Storage) Close() (err *error) {
 	return
 }
 
-func betFromLine(line string) (b *bet.Bet, err error) {
+func betFromLine(line string) (bet *lottery.Bet, err error) {
 	parts := strings.Split(line, separator)
 
 	if len(parts) != betParts {
-		return nil, errors.New("invalid bet")
+		return nil, errors.New("invalid lottery")
 	}
 	number, err := strconv.ParseUint(strings.TrimSpace(parts[numberIndex]), numberBase, numberSize)
 
 	if err != nil {
 		return nil, err
 	}
-	return &bet.Bet{
+	return &lottery.Bet{
 		FirstName: strings.TrimSpace(parts[firstNameIndex]),
 		LastName:  strings.TrimSpace(parts[lastNameIndex]),
 		Document:  strings.TrimSpace(parts[documentIndex]),
@@ -106,7 +106,7 @@ func betFromLine(line string) (b *bet.Bet, err error) {
 	}, nil
 }
 
-func betToLine(bet *bet.Bet) string {
+func betToLine(bet *lottery.Bet) string {
 	return fmt.Sprintf("%s,%s,%s,%s,%d", bet.FirstName, bet.LastName, bet.Document, bet.BirthDate, bet.Number)
 }
 

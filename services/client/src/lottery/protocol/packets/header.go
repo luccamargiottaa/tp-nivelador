@@ -71,10 +71,10 @@ func HeaderFromBytes(bytes []byte) (*Header, error) {
 		return nil, errors.New("invalid header code")
 	}
 	if betAmount == 0 {
-		return nil, errors.New("invalid bet amount")
+		return nil, errors.New("invalid lottery amount")
 	}
 	if betSize == 0 {
-		return nil, errors.New("invalid bet size")
+		return nil, errors.New("invalid lottery size")
 	}
 	return &Header{code, betAmount, betSize, agencyId}, nil
 }

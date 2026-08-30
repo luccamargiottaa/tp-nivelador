@@ -4,8 +4,8 @@ import (
 	"errors"
 	"io"
 
-	"github.com/7574-sistemas-distribuidos/tp-nivelador/src/bet"
-	"github.com/7574-sistemas-distribuidos/tp-nivelador/src/bet/protocol/packets"
+	"github.com/7574-sistemas-distribuidos/tp-nivelador/src/lottery"
+	"github.com/7574-sistemas-distribuidos/tp-nivelador/src/lottery/protocol/packets"
 	"github.com/7574-sistemas-distribuidos/tp-nivelador/src/safe_socket"
 )
 
@@ -52,7 +52,7 @@ func expectAck(socket io.ReadWriter, agencyId uint8) error {
 	return nil
 }
 
-func SendBets(socket io.ReadWriter, agencyId uint8, bets []bet.Bet) error {
+func SendBets(socket io.ReadWriter, agencyId uint8, bets []lottery.Bet) error {
 	betPacket, err := packets.NewBetPacket(agencyId, bets)
 
 	if err != nil {
@@ -66,7 +66,7 @@ func SendBets(socket io.ReadWriter, agencyId uint8, bets []bet.Bet) error {
 	return expectAck(socket, agencyId)
 }
 
-func RecvWinners(socket io.ReadWriter, agencyId uint8) ([]bet.Bet, error) {
+func RecvWinners(socket io.ReadWriter, agencyId uint8) ([]lottery.Bet, error) {
 	end := packets.NewEndPacket(agencyId)
 	err := sendPacket(socket, end)
 
@@ -78,7 +78,7 @@ func RecvWinners(socket io.ReadWriter, agencyId uint8) ([]bet.Bet, error) {
 	if err != nil {
 		return nil, err
 	}
-	bets := make([]bet.Bet, 0)
+	bets := make([]lottery.Bet, 0)
 	ack := packets.NewAckPacket(agencyId)
 
 	for {
