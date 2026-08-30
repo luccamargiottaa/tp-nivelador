@@ -1,15 +1,20 @@
 package packets
 
-import "errors"
+import (
+	"encoding/binary"
+	"errors"
+)
 
 const codeSize = 1
 const betAmountSize = 1
+const betSizeSize = 2
 const agencyIdSize = 1
-const HeaderSize = codeSize + betAmountSize + agencyIdSize
+const HeaderSize = codeSize + betAmountSize + betSizeSize + agencyIdSize
 
 const codeIndex = 0
-const betAmountIndex = 1
-const agencyIdIndex = 2
+const betAmountIndex = codeIndex + codeSize
+const betSizeIndex = betAmountIndex + betAmountSize
+const agencyIdIndex = betSizeIndex + betSizeSize
 
 const AckCode = 0
 const BetCode = 1
@@ -18,48 +23,58 @@ const EndCode = 2
 type Header struct {
 	Code      uint8
 	BetAmount uint8
+	BetSize   uint16
 	AgencyId  uint8
 }
 
-func newHeader(code uint8, betAmount uint8, agencyId uint8) Header {
-	return Header{code, betAmount, agencyId}
+func newHeader(code uint8, betAmount uint8, betSize uint16, agencyId uint8) Header {
+	return Header{code, betAmount, betSize, agencyId}
 }
 
 func newNonBetsHeader(code uint8, agencyId uint8) Header {
-	return newHeader(code, 0, agencyId)
+	return newHeader(code, 0, 0, agencyId)
 }
 
 func NewAckHeader(agencyId uint8) Header {
 	return newNonBetsHeader(AckCode, agencyId)
 }
 
-func NewBetHeader(betAmount uint8, agencyId uint8) Header {
-	return newHeader(BetCode, betAmount, agencyId)
+func NewBetHeader(betAmount uint8, betSize uint16, agencyId uint8) Header {
+	return newHeader(BetCode, betAmount, betSize, agencyId)
 }
 
 func NewEndHeader(agencyId uint8) Header {
 	return newNonBetsHeader(EndCode, agencyId)
 }
 
-func (header *Header) WriteToBytes(dest []byte) {
-	dest[codeIndex] = header.Code
-	dest[betAmountIndex] = header.BetAmount
-	dest[agencyIdIndex] = header.AgencyId
+func (header *Header) WriteToBytes(bytes []byte) {
+	bytes[codeIndex] = header.Code
+	bytes[betAmountIndex] = header.BetAmount
+
+	binary.BigEndian.PutUint16(bytes[betSizeIndex:], header.BetSize)
+
+	bytes[agencyIdIndex] = header.AgencyId
 }
 
-func HeaderFromBytes(header []byte) (*Header, error) {
-	if len(header) != 3 {
+func HeaderFromBytes(bytes []byte) (*Header, error) {
+	if len(bytes) != 3 {
 		return nil, errors.New("invalid header length")
 	}
-	code := header[codeIndex]
-	betAmount := header[betAmountIndex]
-	agencyId := header[agencyIdIndex]
+	code := bytes[codeIndex]
+	betAmount := bytes[betAmountIndex]
 
-	if code != BetCode && betAmount != 0 {
+	betSize := binary.BigEndian.Uint16(bytes[betSizeIndex:])
+
+	agencyId := bytes[agencyIdIndex]
+
+	if code != BetCode && (betAmount != 0 || betSize != 0) {
 		return nil, errors.New("invalid header code")
 	}
 	if betAmount == 0 {
 		return nil, errors.New("invalid bet amount")
 	}
-	return &Header{code, betAmount, agencyId}, nil
+	if betSize == 0 {
+		return nil, errors.New("invalid bet size")
+	}
+	return &Header{code, betAmount, betSize, agencyId}, nil
 }

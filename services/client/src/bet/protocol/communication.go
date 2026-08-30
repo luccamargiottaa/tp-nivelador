@@ -98,18 +98,15 @@ func RecvWinners(socket io.ReadWriter, agencyId uint8) ([]bet.Bet, error) {
 		if header.Code != packets.BetCode {
 			return nil, errors.New("unexpected message from server")
 		}
-		bytes, err := safe_socket.RecvAll(socket, int(header.BetAmount*packets.BetSize))
+		bytes, err := safe_socket.RecvAll(socket, int(header.BetSize))
 
 		if err != nil {
 			return nil, err
 		}
-		for i := 0; i < int(header.BetAmount); i++ {
-			b, err := packets.BetFromBytes(bytes[i : i+1])
+		err = packets.AddBetsFromBytes(header, bytes, bets)
 
-			if err != nil {
-				return nil, err
-			}
-			bets = append(bets, *b)
+		if err != nil {
+			return nil, err
 		}
 		err = sendPacket(socket, ack)
 

@@ -1,38 +1,24 @@
 package packets
 
 import (
-	"encoding/binary"
 	"errors"
 	"math"
 
 	"github.com/7574-sistemas-distribuidos/tp-nivelador/src/bet"
+	"github.com/7574-sistemas-distribuidos/tp-nivelador/src/bet/protocol/packets/bet_packet"
 )
-
-const MaxNameLength = 50
-const DocumentSize = 8
-const BirthdateSize = 10
-const numberSize = 4
-const BetSize = MaxNameLength*2 + DocumentSize + BirthdateSize + numberSize
-
-const firstNameIndex = 0
-const lastNameIndex = MaxNameLength
-const documentIndex = MaxNameLength * 2
-const birthdateIndex = MaxNameLength*2 + DocumentSize
-const numberIndex = MaxNameLength*2 + DocumentSize + BirthdateSize
 
 const MaxBets = math.MaxUint8
 
 type Packet struct {
-	Header Header
-	Bets   []bet.Bet
-}
-
-func newPacket(header Header, bets []bet.Bet) *Packet {
-	return &Packet{header, bets}
+	header Header
+	bets   []bet_packet.BetPacket
 }
 
 func newHeaderPacket(header Header) *Packet {
-	return newPacket(header, make([]bet.Bet, 0))
+	bets := make([]bet_packet.BetPacket, 0)
+
+	return &Packet{header, bets}
 }
 
 func NewAckPacket(agencyId uint8) *Packet {
@@ -40,67 +26,60 @@ func NewAckPacket(agencyId uint8) *Packet {
 }
 
 func NewBetPacket(agencyId uint8, bets []bet.Bet) (*Packet, error) {
-	if len(bets) == 0 {
+	betAmount := uint8(len(bets))
+
+	if betAmount == 0 {
 		return nil, errors.New("bets is empty")
 	}
-	if len(bets) > MaxBets {
+	if betAmount > MaxBets {
 		return nil, errors.New("too many bets")
 	}
-	return newPacket(NewBetHeader(uint8(len(bets)), agencyId), bets), nil
+	betPackets := make([]bet_packet.BetPacket, betAmount)
+
+	var betSize uint16 = 0
+
+	for i, b := range bets {
+		betPacket, err := bet_packet.NewBetPacket(b)
+
+		if err != nil {
+			return nil, err
+		}
+		betPackets[i] = *betPacket
+		betSize += betPacket.Size()
+	}
+	header := NewBetHeader(betAmount, betSize, agencyId)
+	return &Packet{header, betPackets}, nil
 }
 
 func NewEndPacket(agencyId uint8) *Packet {
 	return newHeaderPacket(NewEndHeader(agencyId))
 }
 
-func (packet *Packet) writeBetToBytes(bet bet.Bet, dest []byte) error {
-	if len(bet.FirstName) > MaxNameLength {
-		return errors.New("first name is too long")
-	}
-	if len(bet.LastName) > MaxNameLength {
-		return errors.New("last name is too long")
-	}
-	if len(bet.Document) != DocumentSize {
-		return errors.New("incorrect document size")
-	}
-	if len(bet.BirthDate) != BirthdateSize {
-		return errors.New("incorrect birthdate size")
-	}
-	copy(dest[firstNameIndex:], bet.FirstName)
-	copy(dest[lastNameIndex:], bet.LastName)
-	copy(dest[documentIndex:], bet.Document)
-	copy(dest[birthdateIndex:], bet.BirthDate)
-
-	binary.BigEndian.PutUint32(dest[numberIndex:], bet.Number)
-
-	return nil
-}
-
 func (packet *Packet) ToBytes() ([]byte, error) {
-	bytes := make([]byte, HeaderSize+BetSize*packet.Header.BetAmount)
+	bytes := make([]byte, HeaderSize+packet.header.BetSize)
 
-	packet.Header.WriteToBytes(bytes)
+	packet.header.WriteToBytes(bytes)
 
-	for i, b := range packet.Bets {
-		err := packet.writeBetToBytes(b, bytes[HeaderSize+BetSize*i:])
+	var i uint16 = HeaderSize
 
-		if err != nil {
-			return nil, err
-		}
+	for _, b := range packet.bets {
+		b.WriteToBytes(bytes[i:])
+		i += b.Size()
 	}
 	return bytes, nil
 }
 
-func BetFromBytes(bytes []byte) (*bet.Bet, error) {
-	if len(bytes) != BetSize {
-		return nil, errors.New("invalid bet size")
+func AddBetsFromBytes(header *Header, bytes []byte, bets []bet.Bet) error {
+	var i uint16
+
+	for i < uint16(header.BetAmount) {
+		packet, err := bet_packet.BetPacketFromBytes(bytes[i:])
+
+		if err != nil {
+			return err
+		}
+		bets = append(bets, packet.ToBet())
+		i += packet.Size()
 	}
-	firstName := string(bytes[firstNameIndex : firstNameIndex+MaxNameLength])
-	lastName := string(bytes[lastNameIndex : lastNameIndex+MaxNameLength])
-	document := string(bytes[documentIndex : documentIndex+DocumentSize])
-	birthDate := string(bytes[birthdateIndex : birthdateIndex+BirthdateSize])
-
-	number := binary.BigEndian.Uint32(bytes[numberIndex : numberIndex+numberSize])
-
-	return &bet.Bet{FirstName: firstName, LastName: lastName, Document: document, BirthDate: birthDate, Number: number}, nil
+	return nil
 }
