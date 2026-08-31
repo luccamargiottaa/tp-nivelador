@@ -46,6 +46,9 @@ func (packet *BetPacket) WriteToBytes(bytes []byte) {
 }
 
 func BetPacketFromBytes(bytes []byte) (*BetPacket, error) {
+	if len(bytes) < BetPacketHeaderSize+betBaseSize {
+		return nil, errors.New("invalid bet packet length")
+	}
 	header, err := BetPacketHeaderFromBytes(bytes[:BetPacketHeaderSize])
 
 	if err != nil {

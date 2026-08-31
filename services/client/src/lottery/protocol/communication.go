@@ -24,12 +24,12 @@ func sendPacket(socket io.ReadWriter, packet *packets.Packet) error {
 }
 
 func recvHeader(socket io.ReadWriter, agencyId uint8) (*packets.Header, error) {
-	answer, err := safe_socket.RecvAll(socket, packets.HeaderSize)
+	bytes, err := safe_socket.RecvAll(socket, packets.HeaderSize)
 
 	if err != nil {
 		return nil, err
 	}
-	header, err := packets.HeaderFromBytes(answer)
+	header, err := packets.HeaderFromBytes(bytes)
 
 	if err != nil {
 		return nil, err
@@ -47,7 +47,7 @@ func expectAck(socket io.ReadWriter, agencyId uint8) error {
 		return err
 	}
 	if header.Code != packets.AckCode {
-		return errors.New("unexpected answer from server")
+		return errors.New("unexpected code from server")
 	}
 	return nil
 }

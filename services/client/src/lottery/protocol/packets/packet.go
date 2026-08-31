@@ -70,16 +70,16 @@ func (packet *Packet) ToBytes() ([]byte, error) {
 }
 
 func AddBetsFromBytes(header *Header, bytes []byte, bets []lottery.Bet) error {
-	var i uint16
+	var offset uint16
 
-	for i < uint16(header.BetAmount) {
-		packet, err := bet_packet.BetPacketFromBytes(bytes[i:])
+	for offset < header.BetSize {
+		packet, err := bet_packet.BetPacketFromBytes(bytes[offset:])
 
 		if err != nil {
 			return err
 		}
 		bets = append(bets, packet.Bet)
-		i += packet.Size()
+		offset += packet.Size()
 	}
 	return nil
 }

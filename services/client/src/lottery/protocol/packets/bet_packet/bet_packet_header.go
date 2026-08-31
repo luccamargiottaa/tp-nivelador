@@ -38,7 +38,7 @@ func (header *BetPacketHeader) WriteToBytes(bytes []byte) {
 
 func BetPacketHeaderFromBytes(bytes []byte) (*BetPacketHeader, error) {
 	if len(bytes) != BetPacketHeaderSize {
-		return nil, errors.New("incorrect lottery packet header length")
+		return nil, errors.New("incorrect bet packet header length")
 	}
 	return &BetPacketHeader{bytes[firstNameLengthIndex], bytes[lastNameLengthIndex]}, nil
 }
