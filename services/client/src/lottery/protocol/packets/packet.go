@@ -78,7 +78,7 @@ func AddBetsFromBytes(header *Header, bytes []byte, bets []lottery.Bet) error {
 		if err != nil {
 			return err
 		}
-		bets = append(bets, packet.ToBet())
+		bets = append(bets, packet.Bet)
 		i += packet.Size()
 	}
 	return nil

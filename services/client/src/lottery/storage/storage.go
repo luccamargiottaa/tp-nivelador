@@ -23,8 +23,8 @@ const documentIndex = 2
 const birthdateIndex = 3
 const numberIndex = 4
 
-const numberBase = 10
-const numberSize = 32
+const base = 10
+const bitSize = 32
 
 type Storage struct {
 	inputFile  *os.File
@@ -92,7 +92,12 @@ func betFromLine(line string) (bet *lottery.Bet, err error) {
 	if len(parts) != betParts {
 		return nil, errors.New("invalid lottery")
 	}
-	number, err := strconv.ParseUint(strings.TrimSpace(parts[numberIndex]), numberBase, numberSize)
+	number, err := strconv.ParseUint(strings.TrimSpace(parts[numberIndex]), base, bitSize)
+
+	if err != nil {
+		return nil, err
+	}
+	document, err := strconv.ParseUint(strings.TrimSpace(parts[documentIndex]), base, bitSize)
 
 	if err != nil {
 		return nil, err
@@ -100,14 +105,14 @@ func betFromLine(line string) (bet *lottery.Bet, err error) {
 	return &lottery.Bet{
 		FirstName: strings.TrimSpace(parts[firstNameIndex]),
 		LastName:  strings.TrimSpace(parts[lastNameIndex]),
-		Document:  strings.TrimSpace(parts[documentIndex]),
+		Document:  uint32(document),
 		BirthDate: strings.TrimSpace(parts[birthdateIndex]),
 		Number:    uint32(number),
 	}, nil
 }
 
 func betToLine(bet *lottery.Bet) string {
-	return fmt.Sprintf("%s,%s,%s,%s,%d", bet.FirstName, bet.LastName, bet.Document, bet.BirthDate, bet.Number)
+	return fmt.Sprintf("%s,%s,%d,%s,%d", bet.FirstName, bet.LastName, bet.Document, bet.BirthDate, bet.Number)
 }
 
 func flushWriter(writer *bufio.Writer, err *error) {
