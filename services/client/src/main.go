@@ -68,7 +68,7 @@ func run() int {
 		return 1
 	}
 	if err := newClient.Run(); err != nil {
-		logger.Error("client-run", logger.Fail, "err", err)
+		logger.Error("client-run", logger.Fail, "err", *err)
 		return 1
 	}
 	return 0

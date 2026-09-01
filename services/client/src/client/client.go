@@ -90,7 +90,9 @@ func (client *Client) Run() (err *error) {
 	defer closeStorage(client.storage, err)
 	defer closeConnection(client.conn, err)
 
-	logger.Info("send-bets", logger.InProgress)
+	action := "send-bets"
+
+	logger.Info(action, logger.InProgress)
 
 	for {
 		bets, readErr := client.storage.ReadBets(betsPerSend)
@@ -107,8 +109,11 @@ func (client *Client) Run() (err *error) {
 			return
 		}
 	}
-	logger.Info("send-bets", logger.Success)
-	logger.Info("recv-winners", logger.InProgress)
+	logger.Info(action, logger.Success)
+
+	action = "recv-winners"
+
+	logger.Info(action, logger.InProgress)
 
 	winners, recvErr := protocol.RecvWinners(client.conn, client.config.AgencyId)
 
@@ -120,6 +125,7 @@ func (client *Client) Run() (err *error) {
 		err = writeErr
 		return
 	}
-	logger.Info("recv-winners", logger.Success)
+	logger.Info(action, logger.Success)
+
 	return
 }

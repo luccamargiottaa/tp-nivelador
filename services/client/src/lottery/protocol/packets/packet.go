@@ -69,17 +69,17 @@ func (packet *Packet) ToBytes() ([]byte, error) {
 	return bytes, nil
 }
 
-func AddBetsFromBytes(header *Header, bytes []byte, bets []lottery.Bet) error {
+func AddBetsFromBytes(header *Header, bytes []byte, bets []lottery.Bet) ([]lottery.Bet, error) {
 	var offset uint16
 
 	for offset < header.BetSize {
 		packet, err := bet_packet.BetPacketFromBytes(bytes[offset:])
 
 		if err != nil {
-			return err
+			return nil, err
 		}
 		bets = append(bets, packet.Bet)
 		offset += packet.Size()
 	}
-	return nil
+	return bets, nil
 }

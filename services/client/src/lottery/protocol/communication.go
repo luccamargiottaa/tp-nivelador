@@ -103,7 +103,7 @@ func RecvWinners(socket io.ReadWriter, agencyId uint8) ([]lottery.Bet, error) {
 		if err != nil {
 			return nil, err
 		}
-		err = packets.AddBetsFromBytes(header, bytes, bets)
+		bets, err = packets.AddBetsFromBytes(header, bytes, bets)
 
 		if err != nil {
 			return nil, err

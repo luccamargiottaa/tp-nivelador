@@ -29,6 +29,7 @@ const bitSize = 32
 type Storage struct {
 	inputFile  *os.File
 	outputFile *os.File
+	scanner    *bufio.Scanner
 }
 
 func NewStorage(inputPath string, outputPath string) (*Storage, error) {
@@ -43,17 +44,20 @@ func NewStorage(inputPath string, outputPath string) (*Storage, error) {
 		closeFile(inputFile, &err)
 		return nil, err
 	}
-	storage := &Storage{inputFile, outputFile}
+	scanner := bufio.NewScanner(inputFile)
+
+	storage := &Storage{inputFile, outputFile, scanner}
 
 	return storage, nil
 }
 
 func (storage *Storage) ReadBets(amount int) ([]lottery.Bet, error) {
-	scanner := bufio.NewScanner(storage.inputFile)
 	bets := make([]lottery.Bet, amount)
 
-	for read := 0; read < amount && scanner.Scan(); read++ {
-		line := scanner.Text()
+	read := 0
+
+	for ; read < amount && storage.scanner.Scan(); read++ {
+		line := storage.scanner.Text()
 		bet, err := betFromLine(line)
 
 		if err != nil {
@@ -61,7 +65,7 @@ func (storage *Storage) ReadBets(amount int) ([]lottery.Bet, error) {
 		}
 		bets[read] = *bet
 	}
-	return bets, scanner.Err()
+	return bets[:read], storage.scanner.Err()
 }
 
 func (storage *Storage) WriteBets(bets []lottery.Bet) (err *error) {
@@ -112,7 +116,7 @@ func betFromLine(line string) (bet *lottery.Bet, err error) {
 }
 
 func betToLine(bet *lottery.Bet) string {
-	return fmt.Sprintf("%s,%s,%d,%s,%d", bet.FirstName, bet.LastName, bet.Document, bet.BirthDate, bet.Number)
+	return fmt.Sprintf("%s,%s,%d,%s,%d\n", bet.FirstName, bet.LastName, bet.Document, bet.BirthDate, bet.Number)
 }
 
 func flushWriter(writer *bufio.Writer, err *error) {

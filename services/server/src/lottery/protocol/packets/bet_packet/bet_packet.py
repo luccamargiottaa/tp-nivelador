@@ -1,5 +1,5 @@
 from lottery import Bet
-from lottery.protocol.packets import BYTE_ORDER
+from ..constants import BYTE_ORDER
 from .bet_packet_header import (
     BET_PACKET_HEADER_SIZE,
     BetPacketHeader,

@@ -3,6 +3,7 @@ package bet_packet
 import (
 	"encoding/binary"
 	"errors"
+	"fmt"
 
 	"github.com/7574-sistemas-distribuidos/tp-nivelador/src/lottery"
 )
@@ -29,7 +30,7 @@ func NewBetPacket(bet lottery.Bet) (*BetPacket, error) {
 		return nil, err
 	}
 	if len(bet.BirthDate) != BirthdateSize {
-		return nil, errors.New("incorrect birthdate size")
+		return nil, errors.New(fmt.Sprintf("incorrect birthdate size. size: %d string: %s first: %s last: %s document: %d number: %d", len(bet.BirthDate), bet.BirthDate, bet.FirstName, bet.LastName, bet.Document, bet.Number))
 	}
 	return &BetPacket{*header, bet}, nil
 }

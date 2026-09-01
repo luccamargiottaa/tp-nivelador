@@ -1,8 +1,8 @@
 from typing import List
 
 from lottery import Bet
-from lottery.protocol.packets.bet_packet.bet_packet import BetPacket
-from lottery.protocol.packets.header import Header
+from .bet_packet import BetPacket
+from .header import Header
 
 MAX_BETS = 255
 

@@ -1,1 +1,2 @@
-from src_frozen.lottery import Bet
+from .bet import Bet
+from .lottery import Lottery

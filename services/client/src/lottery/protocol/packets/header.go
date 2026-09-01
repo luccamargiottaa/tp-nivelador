@@ -57,8 +57,8 @@ func (header *Header) WriteToBytes(bytes []byte) {
 }
 
 func HeaderFromBytes(bytes []byte) (*Header, error) {
-	if len(bytes) != 3 {
-		return nil, errors.New("invalid header length")
+	if len(bytes) != HeaderSize {
+		return nil, errors.New("invalid header size")
 	}
 	code := bytes[codeIndex]
 	betAmount := bytes[betAmountIndex]
@@ -67,14 +67,15 @@ func HeaderFromBytes(bytes []byte) (*Header, error) {
 
 	agencyId := bytes[agencyIdIndex]
 
-	if code != BetCode && (betAmount != 0 || betSize != 0) {
+	if code == BetCode {
+		if betAmount == 0 {
+			return nil, errors.New("invalid bet amount")
+		}
+		if betSize == 0 {
+			return nil, errors.New("invalid bet size")
+		}
+	} else if betAmount != 0 || betSize != 0 {
 		return nil, errors.New("invalid header code")
-	}
-	if betAmount == 0 {
-		return nil, errors.New("invalid lottery amount")
-	}
-	if betSize == 0 {
-		return nil, errors.New("invalid lottery size")
 	}
 	return &Header{code, betAmount, betSize, agencyId}, nil
 }

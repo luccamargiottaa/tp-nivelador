@@ -3,16 +3,15 @@ from typing import List
 
 import safe_socket
 from lottery import Bet
-from lottery.protocol.packets.header import (
+from .packets import (
     ACK_CODE,
     BET_CODE,
     END_CODE,
     HEADER_SIZE,
     Header,
+    Packet,
+    MAX_BETS,
 )
-from lottery.protocol.packets.packet import Packet
-
-from services.server.src.lottery.protocol.packets.packet import MAX_BETS
 
 
 def _send_packet(socket: socket.socket, packet: Packet) -> None:
@@ -44,7 +43,8 @@ def send_winners(socket: socket.socket, agency_id: int, winners: List[Bet]) -> N
     offset = 0
 
     while offset < len(winners):
-        bet_packet = Packet.new_bet_packet(agency_id, winners[offset:offset + MAX_BETS])
+        bet_packet = Packet.new_bet_packet(
+            agency_id, winners[offset:offset + MAX_BETS])
         _send_packet(socket, bet_packet)
         _expect_ack(socket, agency_id)
 
@@ -55,12 +55,13 @@ def send_winners(socket: socket.socket, agency_id: int, winners: List[Bet]) -> N
     _expect_ack(socket, agency_id)
 
 
-def recv_bets(socket: socket.socket) -> List[Bet]:
+def recv_bets(socket: socket.socket) -> tuple[List[Bet], int]:
     header = _recv_header(socket)
+    ack = Packet.new_ack_packet(header.agency_id)
 
     if header.code == END_CODE:
         _send_packet(socket, ack)
-        return []
+        return [], header.agency_id
 
     if header.code != BET_CODE:
         raise ValueError('unexpected message from client')
@@ -75,4 +76,4 @@ def recv_bets(socket: socket.socket) -> List[Bet]:
 
     _send_packet(socket, ack)
 
-    return bets
+    return bets, header.agency_id

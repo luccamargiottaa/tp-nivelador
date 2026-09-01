@@ -1,4 +1,4 @@
-from lottery.protocol.packets import BYTE_ORDER
+from .constants import BYTE_ORDER
 
 _CODE_SIZE = 1
 _BET_AMOUNT_SIZE = 1
@@ -58,7 +58,7 @@ class Header:
     @classmethod
     def from_bytes(cls, bytes: bytes) -> 'Header':
         if len(bytes) != HEADER_SIZE:
-            raise ValueError('invalid header length')
+            raise ValueError('invalid header size')
 
         code = bytes[_CODE_INDEX]
         bet_amount = bytes[_BET_AMOUNT_INDEX]
@@ -69,13 +69,14 @@ class Header:
         )
         agency_id = bytes[_AGENCY_ID_INDEX]
 
-        if code != BET_CODE and (bet_amount != 0 or bet_size != 0):
+        if code == BET_CODE:
+            if bet_amount == 0:
+                raise ValueError('invalid bet amount')
+
+            if bet_size == 0:
+                raise ValueError('invalid bet size')
+
+        elif bet_amount != 0 or bet_size != 0:
             raise ValueError('invalid header code')
-
-        if bet_amount == 0:
-            raise ValueError('invalid lottery amount')
-
-        if bet_size == 0:
-            raise ValueError('invalid lottery size')
 
         return cls(code, bet_amount, bet_size, agency_id)
