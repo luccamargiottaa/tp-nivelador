@@ -18,13 +18,16 @@ class BetPacketHeader:
 
     @classmethod
     def from_bet(cls, bet: Bet) -> 'BetPacketHeader':
-        if len(bet.first_name) > MAX_NAME_LENGTH:
+        first_name_length = len(bet.first_name.encode())
+        last_name_length = len(bet.last_name.encode())
+
+        if first_name_length > MAX_NAME_LENGTH:
             raise ValueError('first name is too long')
 
-        if len(bet.last_name) > MAX_NAME_LENGTH:
+        if last_name_length > MAX_NAME_LENGTH:
             raise ValueError('last name is too long')
 
-        return cls(len(bet.first_name), len(bet.last_name))
+        return cls(first_name_length, last_name_length)
 
     def write_to_bytes(self, bytes: bytearray) -> None:
         bytes.append(self.first_name_length)
