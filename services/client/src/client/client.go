@@ -13,14 +13,13 @@ import (
 const connectionAttemptsMax = 3
 const connectionAttemptsDelayMs = 200
 
-const betsPerSend = 1
-
 type Config struct {
 	ServerHost string
 	ServerPort string
 	AgencyId   uint8
 	InputFile  string
 	OutputFile string
+	BatchSize  uint8
 }
 
 type Client struct {
@@ -95,7 +94,7 @@ func (client *Client) Run() (err *error) {
 	logger.Info(action, logger.InProgress)
 
 	for {
-		bets, readErr := client.storage.ReadBets(betsPerSend)
+		bets, readErr := client.storage.ReadBets(client.config.BatchSize)
 
 		if readErr != nil {
 			err = &readErr

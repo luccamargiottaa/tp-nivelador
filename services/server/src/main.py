@@ -6,7 +6,7 @@ import server
 
 SERVER_HOST = os.environ["SERVER_HOST"]
 SERVER_PORT = int(os.environ["SERVER_PORT"])
-STORAGE_PATH = os.environ.get("STORAGE_PATH", "/storage.csv")
+STORAGE_PATH = os.environ.get("STORAGE_PATH", "storage.csv")
 
 
 def main() -> int:

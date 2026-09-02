@@ -51,10 +51,10 @@ func NewStorage(inputPath string, outputPath string) (*Storage, error) {
 	return storage, nil
 }
 
-func (storage *Storage) ReadBets(amount int) ([]lottery.Bet, error) {
+func (storage *Storage) ReadBets(amount uint8) ([]lottery.Bet, error) {
 	bets := make([]lottery.Bet, amount)
 
-	read := 0
+	var read uint8 = 0
 
 	for ; read < amount && storage.scanner.Scan(); read++ {
 		line := storage.scanner.Text()

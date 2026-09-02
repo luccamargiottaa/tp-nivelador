@@ -9,8 +9,9 @@ import (
 	"github.com/7574-sistemas-distribuidos/tp-nivelador/src/logger"
 )
 
-const agencyIdBase = 10
-const agencyIdSize = 8
+const base = 10
+const agencyIdBitSize = 8
+const batchSizeBitSize = 8
 
 func loadConfig() (client.Config, error) {
 	agencyId := os.Getenv("AGENCY_ID")
@@ -18,7 +19,7 @@ func loadConfig() (client.Config, error) {
 	if agencyId == "" {
 		return client.Config{}, errors.New("AGENCY_ID environment variable is required")
 	}
-	agencyIdNum64, err := strconv.ParseUint(agencyId, agencyIdBase, agencyIdSize)
+	agencyIdNum64, err := strconv.ParseUint(agencyId, base, agencyIdBitSize)
 
 	if err != nil {
 		return client.Config{}, errors.New("AGENCY_ID environment variable should be a number")
@@ -45,12 +46,25 @@ func loadConfig() (client.Config, error) {
 	if outputFile == "" {
 		return client.Config{}, errors.New("OUTPUT_FILE environment variable is required")
 	}
+	batchSize := os.Getenv("AGENCY_ID")
+
+	if batchSize == "" {
+		return client.Config{}, errors.New("BATCH_SIZE environment variable is required")
+	}
+	batchSizeIdNum64, err := strconv.ParseUint(agencyId, base, batchSizeBitSize)
+
+	if err != nil {
+		return client.Config{}, errors.New("BATCH_SIZE environment variable should be a number")
+	}
+	batchSizeIdNum8 := uint8(batchSizeIdNum64)
+
 	return client.Config{
 		ServerHost: serverHost,
 		ServerPort: serverPort,
 		AgencyId:   agencyIdNum8,
 		InputFile:  inputFile,
 		OutputFile: outputFile,
+		BatchSize:  batchSizeIdNum8,
 	}, nil
 }
 
