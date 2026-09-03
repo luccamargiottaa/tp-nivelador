@@ -6,12 +6,14 @@ import server
 
 SERVER_HOST = os.environ["SERVER_HOST"]
 SERVER_PORT = int(os.environ["SERVER_PORT"])
+AGENCY_QUORUM_MIN = int(os.environ["AGENCY_QUORUM_MIN"])
 STORAGE_PATH = os.environ.get("STORAGE_PATH", "storage.csv")
 
 
 def main() -> int:
     logger.init()
-    s = server.Server(SERVER_HOST, SERVER_PORT, STORAGE_PATH)
+    s = server.Server(SERVER_HOST, SERVER_PORT,
+                      STORAGE_PATH, AGENCY_QUORUM_MIN)
 
     try:
         s.run()

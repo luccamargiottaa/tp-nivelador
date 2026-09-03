@@ -46,12 +46,12 @@ func loadConfig() (client.Config, error) {
 	if outputFile == "" {
 		return client.Config{}, errors.New("OUTPUT_FILE environment variable is required")
 	}
-	batchSize := os.Getenv("AGENCY_ID")
+	batchSize := os.Getenv("BATCH_SIZE")
 
 	if batchSize == "" {
 		return client.Config{}, errors.New("BATCH_SIZE environment variable is required")
 	}
-	batchSizeIdNum64, err := strconv.ParseUint(agencyId, base, batchSizeBitSize)
+	batchSizeIdNum64, err := strconv.ParseUint(batchSize, base, batchSizeBitSize)
 
 	if err != nil {
 		return client.Config{}, errors.New("BATCH_SIZE environment variable should be a number")
