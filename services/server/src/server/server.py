@@ -160,7 +160,6 @@ class Server:
 
         for worker in self._workers:
             try:
-                worker.terminate()
                 worker.join()
 
             except Exception as e:
