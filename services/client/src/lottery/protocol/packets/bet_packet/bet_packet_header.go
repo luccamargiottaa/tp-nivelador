@@ -2,12 +2,11 @@ package bet_packet
 
 import (
 	"errors"
-	"math"
 
 	"github.com/7574-sistemas-distribuidos/tp-nivelador/src/lottery"
 )
 
-const MaxNameLength = math.MaxUint8
+const MaxNameLength = 120
 
 const firstNameLengthSize = 1
 const lastNameLengthSize = 1

@@ -1,7 +1,7 @@
 from lottery import Bet
 from ..constants import BYTE_ORDER
 
-MAX_NAME_LENGTH = 255
+MAX_NAME_LENGTH = 120
 
 _FIRST_NAME_LENGTH_SIZE = 1
 _LAST_NAME_LENGTH_SIZE = 1
