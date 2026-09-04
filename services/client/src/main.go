@@ -3,7 +3,10 @@ package main
 import (
 	"errors"
 	"os"
+	"os/signal"
 	"strconv"
+	"sync/atomic"
+	"syscall"
 
 	"github.com/7574-sistemas-distribuidos/tp-nivelador/src/client"
 	"github.com/7574-sistemas-distribuidos/tp-nivelador/src/logger"
@@ -68,6 +71,30 @@ func loadConfig() (client.Config, error) {
 	}, nil
 }
 
+func listenToSigterm(sigCh chan os.Signal, doneCh chan bool, client *client.Client, shutdownDone *atomic.Bool) {
+	signal.Notify(sigCh, syscall.SIGTERM)
+
+	go func() {
+		defer close(doneCh)
+
+		if _, ok := <-sigCh; !ok {
+			return
+		}
+		shutdownDone.Store(true)
+		err := client.Conn.Close()
+
+		if err != nil {
+			logger.Error("shutdown", logger.Fail, "err", err)
+		}
+	}()
+}
+
+func closeChannel(sigCh chan os.Signal, doneCh chan bool) {
+	signal.Stop(sigCh)
+	close(sigCh)
+	<-doneCh
+}
+
 func run() int {
 	config, err := loadConfig()
 
@@ -81,7 +108,17 @@ func run() int {
 		logger.Error("client-new", logger.Fail, "err", err)
 		return 1
 	}
+	sigCh := make(chan os.Signal, 1)
+	doneCh := make(chan bool, 1)
+	var shutdownDone atomic.Bool
+
+	listenToSigterm(sigCh, doneCh, newClient, &shutdownDone)
+	defer closeChannel(sigCh, doneCh)
+
 	if err := newClient.Run(); err != nil {
+		if shutdownDone.Load() {
+			return 0
+		}
 		logger.Error("client-run", logger.Fail, "err", *err)
 		return 1
 	}

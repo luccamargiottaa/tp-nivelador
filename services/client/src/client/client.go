@@ -11,7 +11,7 @@ import (
 )
 
 const connectionAttemptsMax = 3
-const connectionAttemptsDelayMs = 200
+const connectionAttemptsDelayMs = 500
 
 type Config struct {
 	ServerHost string
@@ -23,7 +23,7 @@ type Config struct {
 }
 
 type Client struct {
-	conn    net.Conn
+	Conn    net.Conn
 	config  Config
 	storage storage.Storage
 }
@@ -40,7 +40,7 @@ func NewClient(config Config) (*Client, error) {
 		closeConnection(conn, &err)
 		return nil, err
 	}
-	client := &Client{conn: conn, config: config, storage: *stor}
+	client := &Client{Conn: conn, config: config, storage: *stor}
 	return client, nil
 }
 
@@ -87,7 +87,7 @@ func closeStorage(storage storage.Storage, err *error) {
 
 func (client *Client) Run() (err *error) {
 	defer closeStorage(client.storage, err)
-	defer closeConnection(client.conn, err)
+	defer closeConnection(client.Conn, err)
 
 	action := "send-bets"
 
@@ -103,7 +103,7 @@ func (client *Client) Run() (err *error) {
 		if len(bets) == 0 {
 			break
 		}
-		if sendErr := protocol.SendBets(client.conn, client.config.AgencyId, bets); sendErr != nil {
+		if sendErr := protocol.SendBets(client.Conn, client.config.AgencyId, bets); sendErr != nil {
 			err = &sendErr
 			return
 		}
@@ -114,7 +114,7 @@ func (client *Client) Run() (err *error) {
 
 	logger.Info(action, logger.InProgress)
 
-	winners, recvErr := protocol.RecvWinners(client.conn, client.config.AgencyId)
+	winners, recvErr := protocol.RecvWinners(client.Conn, client.config.AgencyId)
 
 	if recvErr != nil {
 		err = &recvErr
