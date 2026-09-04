@@ -2,6 +2,7 @@ import socket
 import logger
 import safe_socket
 import fcntl
+import signal
 from lottery import Bet, Lottery
 from lottery.protocol import send_winners, recv_bets
 from multiprocessing import Queue, Process
@@ -9,6 +10,11 @@ from collections import defaultdict
 from typing import List, Iterator
 
 TOKEN = 0
+
+
+class WorkerState:
+    def __init__(self):
+        self.shutdown_done = False
 
 
 class Server:
@@ -22,6 +28,7 @@ class Server:
         self._coordinator = None
         self._listen_socket = None
         self._workers = []
+        self._shutdown_done = False
 
     def _open_queues(self) -> None:
         action = "open_queues"
@@ -38,7 +45,7 @@ class Server:
             raise e
 
     def _close_queues(self) -> None:
-        action = "close_queues"
+        action = "close_request_queue"
 
         if self._request_queue is not None:
             try:
@@ -49,6 +56,8 @@ class Server:
 
             except Exception as e:
                 logger.error(action, logger.LogResult.fail, 'err', e)
+
+        action = "close_notification_queue"
 
         if self._notification_queue is not None:
             try:
@@ -79,6 +88,8 @@ class Server:
 
         if self._coordinator is not None:
             try:
+                self._request_queue.put(None)
+
                 self._coordinator.join()
 
                 logger.info(action, logger.LogResult.success)
@@ -135,12 +146,78 @@ class Server:
 
         for worker in self._workers:
             try:
+                worker.terminate()
+
+            except Exception as e:
+                logger.error(action, logger.LogResult.fail, 'err', e)
+
+        for _ in range(len(self._workers)):
+            try:
+                self._notification_queue.put(None)
+
+            except Exception as e:
+                logger.error(action, logger.LogResult.fail, 'err', e)
+
+        for worker in self._workers:
+            try:
+                worker.terminate()
                 worker.join()
 
             except Exception as e:
                 logger.error(action, logger.LogResult.fail, 'err', e)
 
         logger.info(action, logger.LogResult.success)
+
+    def _shutdown(self):
+        if not self._shutdown_done:
+            self._close_socket()
+            self._join_coordinator()
+            self._join_workers()
+            self._close_queues()
+
+            self._shutdown_done = True
+
+    def _coordinator_shutdown(self):
+        self._close_queues()
+
+    @classmethod
+    def _worker_shutdown(cls, client_socket: socket.socket, request_queue: Queue, notification_queue: Queue, state: WorkerState) -> None:
+        if state.shutdown_done:
+            return
+
+        action = "worker-close-socket"
+
+        try:
+            client_socket.close()
+
+            logger.info(action, logger.LogResult.success)
+
+        except Exception as e:
+            logger.error(action, logger.LogResult.fail, 'err', e)
+
+        action = "worker-close-request-queue"
+
+        try:
+            request_queue.close()
+            request_queue.join_thread()
+
+            logger.info(action, logger.LogResult.success)
+
+        except Exception as e:
+            logger.error(action, logger.LogResult.fail, 'err', e)
+
+        action = "worker-close-notification-queue"
+
+        try:
+            notification_queue.close()
+            notification_queue.join_thread()
+
+            logger.info(action, logger.LogResult.success)
+
+        except Exception as e:
+            logger.error(action, logger.LogResult.fail, 'err', e)
+
+        state.shutdown_done = True
 
     @classmethod
     def _store_bets_locked(cls, bets: List[Bet], lot: Lottery) -> None:
@@ -178,6 +255,11 @@ class Server:
                 try:
                     agency_id = self._request_queue.get()
 
+                    if agency_id is None:
+                        self._coordinator_shutdown()
+
+                        return
+
                 except Exception as e:
                     logger.error(action, logger.LogResult.fail, 'err', e)
 
@@ -209,7 +291,8 @@ class Server:
     def _get_winners(cls, agency_id: int, request_queue: Queue, notification_queue: Queue, lot: Lottery) -> list[Bet]:
         request_queue.put(agency_id)
 
-        notification_queue.get()
+        if notification_queue.get() is None:
+            return None
 
         winners = []
 
@@ -228,6 +311,10 @@ class Server:
 
             winners = cls._get_winners(
                 agency_id, request_queue, notification_queue, lot)
+
+            if winners is None:
+                return
+
             send_winners(client_socket, agency_id, winners)
 
             logger.info(action, logger.LogResult.success)
@@ -238,7 +325,7 @@ class Server:
             raise e
 
     @classmethod
-    def _recv_bets(cls, client_socket: socket.socket, lot: Lottery) -> int:
+    def _recv_bets(cls, client_socket: socket.socket, lot: Lottery, state: WorkerState) -> int:
         action = 'recv-bets'
 
         try:
@@ -257,7 +344,8 @@ class Server:
             return agency_id
 
         except Exception as e:
-            logger.error(action, logger.LogResult.fail, 'err', e)
+            if not state.shutdown_done:
+                logger.error(action, logger.LogResult.fail, 'err', e)
 
             raise e
 
@@ -265,14 +353,23 @@ class Server:
     def _handle_client(cls, client_socket: socket.socket, lot: Lottery, request_queue: Queue, notification_queue: Queue) -> None:
         logger.init()
 
+        state = WorkerState()
+        signal.signal(signal.SIGTERM, lambda signum, frame: cls._worker_shutdown(
+            client_socket, request_queue, notification_queue, state))
+
         try:
-            agency_id = cls._recv_bets(client_socket, lot)
+            agency_id = cls._recv_bets(client_socket, lot, state)
 
             cls._send_winners(client_socket, agency_id,
                               request_queue, notification_queue, lot)
 
+        except Exception as e:
+            if not state.shutdown_done:
+                raise e
+
         finally:
-            client_socket.close()
+            cls._worker_shutdown(
+                client_socket, request_queue, notification_queue, state)
 
     def _accept_loop(self):
         action = "accept-connection"
@@ -283,14 +380,17 @@ class Server:
 
                 logger.info(action, logger.LogResult.success)
 
+                self._start_worker(client_socket)
+
             except Exception as e:
-                logger.error(action, logger.LogResult.fail)
+                if not self._shutdown_done:
+                    logger.error(action, logger.LogResult.fail)
 
                 raise e
 
-            self._start_worker(client_socket)
-
     def run(self) -> None:
+        signal.signal(signal.SIGTERM, lambda signum, frame: self._shutdown())
+
         try:
             self._open_queues()
             self._start_coordinator()
@@ -298,8 +398,9 @@ class Server:
 
             self._accept_loop()
 
+        except Exception as e:
+            if not self._shutdown_done:
+                raise e
+
         finally:
-            self._close_socket()
-            self._close_queues()
-            self._join_coordinator()
-            self._join_workers()
+            self._shutdown()
